@@ -1,12 +1,22 @@
-import axios from 'axios';
-
 const url = 'http://127.0.0.1:5000/predict';
-const data = { symptoms: ['headache', 'nausea', 'vomiting', 'fatigue'] };
+const data = { symptoms: ['headache', 'nausea', 'vomiting', 'fatigue', 'mood swings', 'neck pain', 'dizziness'] };
 
-axios.post(url, data)
+fetch(url, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(data)
+})
   .then(response => {
-    console.log(response.data);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log(data);
   })
   .catch(error => {
-    console.error('Error:', error);
+    console.error('Fetch error:', error);
   });
