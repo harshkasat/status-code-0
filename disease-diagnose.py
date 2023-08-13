@@ -5,17 +5,22 @@ import pandas as pd
 
 app = Flask(__name__)
 
-# Load the saved model
 loaded_model = joblib.load('rf_model.pkl')
 df_s = pd.read_csv('./Symptom-severity.csv')
 df_s['Symptom'] = df_s['Symptom'].str.replace('_', ' ')
 
-@app.route('/predict', methods=['POST'])
+@app.route('/predict', methods=['GET'])
 def predict():
-    data = request.json
-    symptoms = data['symptoms']
-    prediction = make_prediction(symptoms)
-    return jsonify({'prediction': prediction})
+    try:
+        symptoms = request.args.get('symptoms')
+        symptoms = symptoms.split(',') if symptoms else []
+
+        prediction = make_prediction(symptoms)
+
+        response = {'prediction': prediction}
+        return jsonify(response), 200 
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400  
 
 def make_prediction(symptoms):
     x = np.array(df_s['Symptom'])

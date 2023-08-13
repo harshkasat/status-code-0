@@ -1,32 +1,38 @@
-from langchain.llms import HuggingFacePipeline
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, AutoModelForSeq2SeqLM
+from flask import Flask, request, jsonify
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import json
 
-from langchain import PromptTemplate, HuggingFaceHub, LLMChain
+app = Flask(__name__)
 
-template = """Question: {question}
+# Load pre-trained model and tokenizer
+model_name = "gpt2-xl"
+model = GPT2LMHeadModel.from_pretrained(model_name)
+tokenizer = GPT2Tokenizer.from_pretrained(model_name)
 
-Answer: Let's think step by step."""
+@app.route('/generate', methods=['POST'])
+def generate_text():
+    try:
+        # Read JSON data from the request
+        json_data = request.get_json()
 
-prompt = PromptTemplate(template=template, input_variables=["question"])
+        # Extract the value of the "input_text" key from the dictionary
+        input_text = f'Give me the precautions for this disease {json_data.get("input_text", "")}'
 
-model_id = "gpt2-medium"
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(model_id)
+        # Encode the input text
+        input_ids = tokenizer.encode(input_text, return_tensors="pt")
 
-pipe = pipeline(
-    "text-generation", 
-    model=model, 
-    tokenizer=tokenizer, 
-    max_length=100
-)
+        # Generate text continuation
+        output = model.generate(input_ids, max_length=100, num_return_sequences=1)
 
-local_llm = HuggingFacePipeline(pipeline=pipe)
+        # Decode the generated text
+        generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
 
-llm_chain = LLMChain(prompt=prompt, 
-                     llm=local_llm
-                     )
+        response = {"generated_text": generated_text}
+        return jsonify(response), 200
+    except Exception as e:
+        a=jsonify({"error": str(e)}), 500
+        print(a)
+        return a
 
-question = "alternative of  paracetamol medicine"
-
-print(llm_chain.run(question))
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
